@@ -94,6 +94,9 @@ extern double get_peak_rss_mb();
 extern void disable_multi_threading();
 // Returns the size of physical memory (RAM) in bytes.
 extern size_t total_physical_memory();
+// Asks the allocators (tbbmalloc and the system malloc) to return freed memory to the OS. Cheap; call it
+// after a large amount of data has been released, e.g. when a slicing result is dropped.
+extern void release_unused_memory_to_os();
 
 // Set a path with GUI resource files.
 void set_var_dir(const std::string &path);

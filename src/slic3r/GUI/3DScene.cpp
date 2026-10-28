@@ -220,21 +220,23 @@ void GLIndexedVertexArray::finalize_geometry(bool opengl_initialized)
         glsafe(::glBindBuffer(GL_ARRAY_BUFFER, this->vertices_and_normals_interleaved_VBO_id));
         glsafe(::glBufferData(GL_ARRAY_BUFFER, this->vertices_and_normals_interleaved.size() * 4, this->vertices_and_normals_interleaved.data(), GL_STATIC_DRAW));
         glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
-        this->vertices_and_normals_interleaved.clear();
+        // Swap in an empty vector rather than clear(): clear() keeps the full capacity allocated, so the
+        // CPU copy of the mesh would otherwise stay resident for the lifetime of the GLVolume.
+        this->vertices_and_normals_interleaved = std::vector<float>();
     }
     if (! this->triangle_indices.empty()) {
         glsafe(::glGenBuffers(1, &this->triangle_indices_VBO_id));
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->triangle_indices_VBO_id));
         glsafe(::glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->triangle_indices.size() * 4, this->triangle_indices.data(), GL_STATIC_DRAW));
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-        this->triangle_indices.clear();
+        this->triangle_indices = std::vector<int>();
     }
     if (! this->quad_indices.empty()) {
         glsafe(::glGenBuffers(1, &this->quad_indices_VBO_id));
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->quad_indices_VBO_id));
         glsafe(::glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->quad_indices.size() * 4, this->quad_indices.data(), GL_STATIC_DRAW));
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-        this->quad_indices.clear();
+        this->quad_indices = std::vector<int>();
     }
 }
 

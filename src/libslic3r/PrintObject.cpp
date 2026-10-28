@@ -4320,6 +4320,10 @@ void PrintObject::_generate_support_material()
         TreeSupport tree_support(*this, m_slicing_params);
         tree_support.throw_on_cancel = [this]() { this->throw_if_canceled(); };
         tree_support.generate();
+        // The per-layer collision/avoidance caches are only needed while generating. They are recreated
+        // on demand (alloc_tree_support_preview_cache) and cleared at the start of the next detection
+        // anyway, so keeping them alive after this step only costs memory.
+        this->clear_tree_support_preview_cache();
     }
     else {
         PrintObjectSupportMaterial support_material(this, m_slicing_params);

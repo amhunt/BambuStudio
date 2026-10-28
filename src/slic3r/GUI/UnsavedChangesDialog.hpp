@@ -544,6 +544,7 @@ class DiffPresetDialog : public DPIDialog
 
     void                    update_tree();
     void                    update_bundles_from_app();
+    void                    release_bundles();
     void                    update_controls_visibility(Preset::Type type = Preset::TYPE_INVALID);
     void                    update_compatibility(const std::string& preset_name, Preset::Type type, PresetBundle* preset_bundle);
 
@@ -561,6 +562,8 @@ public:
 
     void                    show(Preset::Type type = Preset::TYPE_INVALID);
     void                    update_presets(Preset::Type type = Preset::TYPE_INVALID);
+    // Hiding the dialog also drops its two preset-bundle copies (see release_bundles()).
+    bool                    Show(bool show = true) override;
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;

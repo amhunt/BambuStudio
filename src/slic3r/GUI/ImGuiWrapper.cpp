@@ -2853,6 +2853,15 @@ void ImGuiWrapper::init_font(bool compress)
     // Store our identifier
     io.Fonts->TexID = (ImTextureID)(intptr_t)m_font_texture;
 
+    // The atlas pixels now live on the GPU. GetTexDataAsRGBA32() keeps both an Alpha8 and an RGBA32 copy
+    // of the atlas in RAM; for CJK glyph ranges the RGBA32 one alone runs to hundreds of MB. Free just
+    // that one: ImGui 1.83's IsBuilt() needs one of the two to stay, and GetTexDataAsRGBA32() rebuilds
+    // the RGBA32 copy from the Alpha8 one on demand should anything ask for it again.
+    if (io.Fonts->TexPixelsRGBA32 != nullptr) {
+        IM_FREE(io.Fonts->TexPixelsRGBA32);
+        io.Fonts->TexPixelsRGBA32 = nullptr;
+    }
+
     // Restore state
     glsafe(::glBindTexture(GL_TEXTURE_2D, last_texture));
 }

@@ -1548,8 +1548,11 @@ void GCodeProcessorResult::reset() {
     //BBS: add mutex for protection of gcode result
     lock();
 
-    moves.clear();
-    lines_ends.clear();
+    // Swap in empty vectors rather than clear(): clear() keeps the capacity allocated, and the moves
+    // buffer is by far the largest part of a sliced result. BackgroundSlicingProcess::apply() relies on
+    // reset() to really release this memory when a slice is invalidated.
+    moves = std::vector<GCodeProcessorResult::MoveVertex>();
+    lines_ends = std::vector<size_t>();
     printable_area = Pointfs();
     //BBS: add bed exclude area
     bed_exclude_area = Pointfs();
@@ -2796,6 +2799,11 @@ void GCodeProcessor::finalize(bool post_process)
     update_preview_layers_times_stats();
     //BBS: update slice warning
     update_slice_warnings();
+
+    // moves grows by emplace_back() during parsing, so up to half of its capacity can be unused slack.
+    // No moves are added after this point; give that memory back.
+    m_result.moves.shrink_to_fit();
+    m_result.lines_ends.shrink_to_fit();
 }
 
 float GCodeProcessor::get_time(PrintEstimatedStatistics::ETimeMode mode) const

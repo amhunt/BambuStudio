@@ -14,7 +14,12 @@
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
+#include <malloc/malloc.h>
 #endif
+#if defined(__linux__)
+#include <malloc.h>
+#endif
+#include <oneapi/tbb/scalable_allocator.h>
 
 #ifdef WIN32
 	#include <windows.h>
@@ -1510,6 +1515,20 @@ size_t total_physical_memory()
 
 #else
 	return 0L;			// Unknown OS.
+#endif
+}
+
+void release_unused_memory_to_os()
+{
+    // tbbmalloc keeps freed blocks in per-thread pools; ask it to hand them back.
+    scalable_allocation_command(TBBMALLOC_CLEAN_ALL_BUFFERS, nullptr);
+#if defined(__APPLE__)
+    // Slicing frees a very large number of small blocks across many threads, which leaves the macOS
+    // allocator holding on to pages that no longer contain live data. Without this call they stay
+    // resident (and visible in Activity Monitor) until the process exits.
+    malloc_zone_pressure_relief(nullptr, 0);
+#elif defined(__linux__) && defined(__GLIBC__)
+    malloc_trim(0);
 #endif
 }
 

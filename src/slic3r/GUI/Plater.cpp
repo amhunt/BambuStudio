@@ -10908,6 +10908,9 @@ void Plater::priv::reset(bool apply_presets_change)
         auto layout = m_aui_mgr.SavePerspective();
         wxGetApp().app_config->set("window_layout", layout.utf8_string());
     }
+
+    // The model, the plates and their slicing results were just dropped; give the memory back.
+    release_unused_memory_to_os();
 }
 
 void Plater::priv::center_selection()
@@ -13132,6 +13135,8 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     // At this point of time the thread should be either finished or canceled,
     // so the following call just confirms, that the produced data were consumed.
     this->background_process.stop();
+    // The slicer's intermediate data is gone by now; make sure the allocators actually give it back.
+    release_unused_memory_to_os();
     notification_manager->set_slicing_progress_export_possible();
 
     // Reset the "export G-code path" name, so that the automatic background processing will be enabled again.

@@ -2389,8 +2389,12 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     assert(wxGetApp().preset_bundle);
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    // This dialog lives as long as the main frame, so start with empty bundles rather than two full
+    // copies of the application's presets (which together run to a few hundred MB). show() fills them
+    // from the application and Show(false) empties them again; the PresetBundle objects themselves
+    // stay put because the selector's combo boxes hold raw pointers to them.
+    m_preset_bundle_left  = std::make_unique<PresetBundle>();
+    m_preset_bundle_right = std::make_unique<PresetBundle>();
 
     // Single preset A/B selector; its combo pair is (re)built for the active type by set_type().
     m_selector                       = new PresetSelectorPanel(this, m_preset_bundle_left.get(), m_preset_bundle_right.get());
@@ -2529,13 +2533,34 @@ void DiffPresetDialog::update_bundles_from_app()
 {
     *m_preset_bundle_left  = *wxGetApp().preset_bundle;
     *m_preset_bundle_right = *wxGetApp().preset_bundle;
+    m_pr_technology        = m_preset_bundle_left->printers.get_edited_preset().printer_technology();
     m_selector->forget_selections();
+}
+
+void DiffPresetDialog::release_bundles()
+{
+    // Assigning a default-constructed bundle leaves exactly the state the constructor set up, with
+    // only the built-in default presets. The combo boxes are refreshed from the bundles on show().
+    *m_preset_bundle_left  = PresetBundle();
+    *m_preset_bundle_right = PresetBundle();
+}
+
+bool DiffPresetDialog::Show(bool show /* = true*/)
+{
+    const bool changed = DPIDialog::Show(show);
+    if (!show)
+        release_bundles();
+    return changed;
 }
 
 void DiffPresetDialog::show(Preset::Type type /* = Preset::TYPE_INVALID*/)
 {
     this->SetTitle(_L("Compare presets"));
     m_opened_generically = (type == Preset::TYPE_INVALID);
+
+    // if this dialog is shown it have to be Hide and show again to be placed on the very Top of windows.
+    // Hide first: Show(false) releases the bundles, which are refilled just below.
+    if (IsShown()) Hide();
 
     update_bundles_from_app();
 
@@ -2557,15 +2582,16 @@ void DiffPresetDialog::show(Preset::Type type /* = Preset::TYPE_INVALID*/)
     update_tree();
     wxGetApp().UpdateDlgDarkUI(this);
 
-    // if this dialog is shown it have to be Hide and show again to be placed on the very Top of windows
-    if (IsShown()) Hide();
     Show();
 }
 
 void DiffPresetDialog::update_presets(Preset::Type type)
 {
+    // While hidden the bundles are empty and show() reloads everything from the application anyway.
+    if (!IsShown())
+        return;
+
     const PrinterTechnology prev_tech = m_pr_technology;
-    m_pr_technology = m_preset_bundle_left.get()->printers.get_edited_preset().printer_technology();
 
     update_bundles_from_app();
     // A technology switch changes the tab set (FFF vs SLA); rebuild so the tabs stay valid.

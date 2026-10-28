@@ -740,8 +740,10 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const Dyn
 		// Let the G-code preview UI know that the final G-code preview is not valid.
 		// In addition, this early memory deallocation reduces memory footprint.
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": invalide gcode result %1%, will reset soon")%m_gcode_result;
-		if (m_gcode_result != nullptr)
+		if (m_gcode_result != nullptr) {
 			m_gcode_result->reset();
+			release_unused_memory_to_os();
+		}
 	}
 	return invalidated;
 }
