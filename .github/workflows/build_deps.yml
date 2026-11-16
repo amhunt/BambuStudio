@@ -91,7 +91,7 @@ jobs:
             mkdir ${{ github.workspace }}\deps\build\BambuStudio_dep
             cd "${{ github.workspace }}\deps\build"
             $platform = "${{ inputs.arch }}" -eq "arm64ec" ? "ARM64EC" : "ARM64"
-            cmake ../ -G "Visual Studio 17 2022" -A $platform -DDESTDIR="./BambuStudio_dep" -DCMAKE_BUILD_TYPE=Release -DDEP_DEBUG=OFF
+            cmake ../ -G "Visual Studio 18 2026" -A $platform -DDESTDIR="./BambuStudio_dep" -DCMAKE_BUILD_TYPE=Release -DDEP_DEBUG=OFF
             msbuild /m ALL_BUILD.vcxproj
         shell: pwsh
 
@@ -122,38 +122,56 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             brew install automake texinfo nasm yasm x264
-            brew uninstall --ignore-dependencies zstd
+            # brew extract needs a local clone of homebrew/core, which current runner images no longer have
+            # (Homebrew installs from its API instead), and brew refuses to tap it unless told the API is off.
+            HOMEBREW_NO_INSTALL_FROM_API=1 brew tap homebrew/core
             brew unlink cmake || true
             brew tap-new $USER/old-cmake
             brew extract --version=3.31.0 cmake $USER/old-cmake
             brew install $USER/old-cmake/cmake@3.31.0
             brew link --overwrite cmake@3.31.0
             brew pin cmake@3.31.0
+            # Hide Homebrew's zstd from the deps build. Unlinking removes it from /opt/homebrew/{lib,include}
+            # (all CMake ever searches) while keeping the keg, so brew's own git and curl, which are linked
+            # against libzstd, keep working. Uninstalling it instead broke those and, worse, left the runner
+            # without a zstd binary at cache-save time: actions/cache then saved the deps with gzip while the
+            # downstream build job (fresh runner, zstd present) looked for a zstd-compressed entry and missed.
+            brew unlink zstd || true
             ./BuildMac.sh -d -x -a x86_64 -t 10.15 -1
             for arch in x86_64; do
                 (cd "${{ github.workspace }}/deps/build/${arch}" && \
                 find . -mindepth 1 -maxdepth 1 ! -name 'BambuStudio_deps' -exec rm -rf {} +)
             done
-            brew install zstd
+            # Relink zstd so actions/cache compresses the deps cache the same way the build job will look for it.
+            brew link zstd || true
       
       - name: Build on Mac ${{ inputs.arch }}
         if: inputs.os == 'macos-15' || inputs.os == 'macos-26'
         working-directory: ${{ github.workspace }}
         run: |
             brew install automake texinfo nasm yasm x264
-            brew uninstall --ignore-dependencies zstd
+            # brew extract needs a local clone of homebrew/core, which current runner images no longer have
+            # (Homebrew installs from its API instead), and brew refuses to tap it unless told the API is off.
+            HOMEBREW_NO_INSTALL_FROM_API=1 brew tap homebrew/core
             brew unlink cmake || true
             brew tap-new $USER/old-cmake
             brew extract --version=3.31.0 cmake $USER/old-cmake
             brew install $USER/old-cmake/cmake@3.31.0
             brew link --overwrite cmake@3.31.0
             brew pin cmake@3.31.0
+            # Hide Homebrew's zstd from the deps build. Unlinking removes it from /opt/homebrew/{lib,include}
+            # (all CMake ever searches) while keeping the keg, so brew's own git and curl, which are linked
+            # against libzstd, keep working. Uninstalling it instead broke those and, worse, left the runner
+            # without a zstd binary at cache-save time: actions/cache then saved the deps with gzip while the
+            # downstream build job (fresh runner, zstd present) looked for a zstd-compressed entry and missed.
+            brew unlink zstd || true
             ./BuildMac.sh -d -x -a universal -t 10.15 -1
             for arch in arm64 x86_64; do
                 (cd "${{ github.workspace }}/deps/build/${arch}" && \
                 find . -mindepth 1 -maxdepth 1 ! -name 'BambuStudio_deps' -exec rm -rf {} +)
             done
-            brew install zstd
+            # Relink zstd so actions/cache compresses the deps cache the same way the build job will look for it.
+            brew link zstd || true
 
       - name: pack deps on Macos
         if: inputs.os == 'macos-15-intel' || inputs.os == 'macos-15' || inputs.os == 'macos-26'
