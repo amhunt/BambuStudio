@@ -91,7 +91,7 @@ jobs:
             mkdir ${{ github.workspace }}\deps\build\BambuStudio_dep
             cd "${{ github.workspace }}\deps\build"
             $platform = "${{ inputs.arch }}" -eq "arm64ec" ? "ARM64EC" : "ARM64"
-            cmake ../ -G "Visual Studio 17 2022" -A $platform -DDESTDIR="./BambuStudio_dep" -DCMAKE_BUILD_TYPE=Release -DDEP_DEBUG=OFF
+            cmake ../ -G "Visual Studio 18 2026" -A $platform -DDESTDIR="./BambuStudio_dep" -DCMAKE_BUILD_TYPE=Release -DDEP_DEBUG=OFF
             msbuild /m ALL_BUILD.vcxproj
         shell: pwsh
 
@@ -124,6 +124,9 @@ jobs:
             brew install automake texinfo nasm yasm x264
             brew uninstall --ignore-dependencies zstd
             brew unlink cmake || true
+            # brew extract needs a local clone of homebrew/core, which current runner images no longer have
+            # (Homebrew installs from its API instead).
+            brew tap homebrew/core
             brew tap-new $USER/old-cmake
             brew extract --version=3.31.0 cmake $USER/old-cmake
             brew install $USER/old-cmake/cmake@3.31.0
@@ -143,6 +146,9 @@ jobs:
             brew install automake texinfo nasm yasm x264
             brew uninstall --ignore-dependencies zstd
             brew unlink cmake || true
+            # brew extract needs a local clone of homebrew/core, which current runner images no longer have
+            # (Homebrew installs from its API instead).
+            brew tap homebrew/core
             brew tap-new $USER/old-cmake
             brew extract --version=3.31.0 cmake $USER/old-cmake
             brew install $USER/old-cmake/cmake@3.31.0
