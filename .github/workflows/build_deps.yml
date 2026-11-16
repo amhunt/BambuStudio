@@ -131,20 +131,19 @@ jobs:
             brew install $USER/old-cmake/cmake@3.31.0
             brew link --overwrite cmake@3.31.0
             brew pin cmake@3.31.0
-            # Only now remove zstd: brew's git and curl are linked against libzstd, so every download
-            # above (the core tap, the cmake source tarball) has to finish before it goes.
-            brew uninstall --ignore-dependencies zstd
-            # The deps build clones several dependencies with git. Without zstd, brew's git can no longer
-            # talk https, so step aside and let it find Apple's /usr/bin/git instead.
-            brew unlink git || true
+            # Hide Homebrew's zstd from the deps build. Unlinking removes it from /opt/homebrew/{lib,include}
+            # (all CMake ever searches) while keeping the keg, so brew's own git and curl, which are linked
+            # against libzstd, keep working. Uninstalling it instead broke those and, worse, left the runner
+            # without a zstd binary at cache-save time: actions/cache then saved the deps with gzip while the
+            # downstream build job (fresh runner, zstd present) looked for a zstd-compressed entry and missed.
+            brew unlink zstd || true
             ./BuildMac.sh -d -x -a x86_64 -t 10.15 -1
             for arch in x86_64; do
                 (cd "${{ github.workspace }}/deps/build/${arch}" && \
                 find . -mindepth 1 -maxdepth 1 ! -name 'BambuStudio_deps' -exec rm -rf {} +)
             done
-            # Best effort only: brew's curl is unusable without libzstd, so this often cannot download the
-            # bottle. Nothing after this step needs zstd (the runner is discarded), so never fail on it.
-            brew install zstd || true
+            # Relink zstd so actions/cache compresses the deps cache the same way the build job will look for it.
+            brew link zstd || true
       
       - name: Build on Mac ${{ inputs.arch }}
         if: inputs.os == 'macos-15' || inputs.os == 'macos-26'
@@ -160,20 +159,19 @@ jobs:
             brew install $USER/old-cmake/cmake@3.31.0
             brew link --overwrite cmake@3.31.0
             brew pin cmake@3.31.0
-            # Only now remove zstd: brew's git and curl are linked against libzstd, so every download
-            # above (the core tap, the cmake source tarball) has to finish before it goes.
-            brew uninstall --ignore-dependencies zstd
-            # The deps build clones several dependencies with git. Without zstd, brew's git can no longer
-            # talk https, so step aside and let it find Apple's /usr/bin/git instead.
-            brew unlink git || true
+            # Hide Homebrew's zstd from the deps build. Unlinking removes it from /opt/homebrew/{lib,include}
+            # (all CMake ever searches) while keeping the keg, so brew's own git and curl, which are linked
+            # against libzstd, keep working. Uninstalling it instead broke those and, worse, left the runner
+            # without a zstd binary at cache-save time: actions/cache then saved the deps with gzip while the
+            # downstream build job (fresh runner, zstd present) looked for a zstd-compressed entry and missed.
+            brew unlink zstd || true
             ./BuildMac.sh -d -x -a universal -t 10.15 -1
             for arch in arm64 x86_64; do
                 (cd "${{ github.workspace }}/deps/build/${arch}" && \
                 find . -mindepth 1 -maxdepth 1 ! -name 'BambuStudio_deps' -exec rm -rf {} +)
             done
-            # Best effort only: brew's curl is unusable without libzstd, so this often cannot download the
-            # bottle. Nothing after this step needs zstd (the runner is discarded), so never fail on it.
-            brew install zstd || true
+            # Relink zstd so actions/cache compresses the deps cache the same way the build job will look for it.
+            brew link zstd || true
 
       - name: pack deps on Macos
         if: inputs.os == 'macos-15-intel' || inputs.os == 'macos-15' || inputs.os == 'macos-26'
