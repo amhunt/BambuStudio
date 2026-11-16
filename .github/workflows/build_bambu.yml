@@ -81,8 +81,8 @@ jobs:
           brew install automake texinfo
           brew unlink cmake || true
           # brew extract needs a local clone of homebrew/core, which current runner images no longer have
-          # (Homebrew installs from its API instead).
-          brew tap homebrew/core
+          # (Homebrew installs from its API instead), and brew refuses to tap it unless told the API is off.
+          HOMEBREW_NO_INSTALL_FROM_API=1 brew tap homebrew/core
           brew tap-new $USER/old-cmake
           brew extract --version=3.31.0 cmake $USER/old-cmake
           brew install $USER/old-cmake/cmake@3.31.0
@@ -97,8 +97,8 @@ jobs:
           brew install automake texinfo
           brew unlink cmake || true
           # brew extract needs a local clone of homebrew/core, which current runner images no longer have
-          # (Homebrew installs from its API instead).
-          brew tap homebrew/core
+          # (Homebrew installs from its API instead), and brew refuses to tap it unless told the API is off.
+          HOMEBREW_NO_INSTALL_FROM_API=1 brew tap homebrew/core
           brew tap-new $USER/old-cmake
           brew extract --version=3.31.0 cmake $USER/old-cmake
           brew install $USER/old-cmake/cmake@3.31.0
